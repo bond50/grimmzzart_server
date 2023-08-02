@@ -1,5 +1,5 @@
-const Wallet = require('../models/Wallet');
-const Transaction = require('../models/Transaction');
+const Wallet = require('../models/wallet');
+const Transaction = require('../models/transaction');
 
 // Create wallet
 exports.createWallet = async (req, res) => {
