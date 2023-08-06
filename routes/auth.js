@@ -7,6 +7,8 @@ const {
     forgotPassword,
     resetPassword,
     googleLogin,
+    verify2FA,
+    signinWithAuthenticator,
     proceed
 } = require('../controllers/auth')
 
@@ -29,6 +31,8 @@ const {authorize} = require("../middlewares/authorize");
 router.post('/pre-signup', userSignupValidator, runValidation, preSignup)
 router.post('/signup', signup)
 router.post('/signin', signin)
+router.post('/signin-mfa', signinWithAuthenticator)
+router.post('/verify2FA', verify2FA)
 router.post('/current-admin', requireSignin, authCheck, adminCheck, proceed)
 router.post('/current-user', requireSignin, authCheck, proceed)
 

@@ -6,8 +6,11 @@ const {errorHandler} = require("../helpers/dbErrorHandler");
 const {OAuth2Client} = require('google-auth-library')
 const sgMail = require("@sendgrid/mail");
 const Role = require('../models/role')
-const speakeasy = require('speakeasy');
+const totp = require('totp-generator');
+const QRCode = require('qrcode');
 const {CustomError} = require("../middlewares/errorHandler");
+const crypto = require('crypto');
+
 
 //testing Last
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -159,9 +162,112 @@ exports.signup = async (req, res, next) => {
 };
 
 
+function generateBase32Secret(length = 20) {
+    const randomBuffer = crypto.randomBytes(length);
+    return randomBuffer.toString('base64').replace(/[^A-Z2-7]/gi, '').slice(0, length);
+}
+
+exports.verify2FA = async (req, res, next) => {
+    const {userId, authenticatorToken} = req.body;
+
+    try {
+        const user = await User.findById(userId).populate('role').exec();
+        if (!user) {
+            return res.status(400).json({error: 'User not found.'});
+        }
+        const generatedToken = totp(user.secret);
+        const verified = generatedToken === authenticatorToken;
+        if (verified) {
+            if (!user.hasLoggedInBefore) {
+                await User.findByIdAndUpdate(user._id, {hasLoggedInBefore: true});
+            }
+            const token = jwt.sign({_id: user._id}, process.env.JWT_SECRET, {expiresIn: '1d'});
+            res.cookie('token', token, {expiresIn: '1d'});
+
+            const {
+                _id,
+                username,
+                cart,
+                firstName,
+                surname,
+                role,
+            } = user.toObject();
+
+
+            res.json({
+                user: {
+                    _id,
+                    token,
+                    cart,
+                    username,
+                    firstName,
+                    surname,
+                    role,
+                },
+            });
+        } else {
+            res.status(400).json({message: 'Invalid code. Please try again.'});
+        }
+    } catch (err) {
+        next(err);
+    }
+};
+
+exports.signinWithAuthenticator = async (req, res, next) => {
+    const {identifier, password} = req.body;
+    try {
+        const user = await User.findOne({
+            $or: [{email: identifier}, {phoneNumber: identifier}, {username: identifier}],
+        }).populate('role').exec();
+
+        if (!user) {
+            return res.status(400).json({message: 'User not found. Please signup.'});
+        }
+
+        if (user.role.code !== 1000) {
+            return res.status(403).json({message: 'Access denied'});
+        }
+
+        const isPasswordMatch = await user.authenticate(password);
+        if (!isPasswordMatch) {
+            return res.status(400).json({message: 'Invalid login credentials.'});
+        }
+
+        if (!user.hasLoggedInBefore) {
+            const secret = generateBase32Secret();
+
+            // Construct the otpauth_url manually
+            const otpauth_url = `otpauth://totp/${process.env.APP_NAME}:${identifier}?secret=${secret}&issuer=${process.env.APP_NAME}`;
+
+            await User.findByIdAndUpdate(user._id, {
+                secret: secret,
+                is2FAEnabled: true,
+            });
+
+            QRCode.toDataURL(otpauth_url, (err, data_url) => {
+                if (err) {
+                    return res.status(500).json({error: 'Failed to generate QR code.'});
+                }
+                res.json({
+                    userId: user._id,
+                    qrCode: data_url,
+                    message: 'Scan the QR code using your authenticator app. Then, provide the token for verification.'
+                });
+            });
+        } else if (user.is2FAEnabled && user.hasLoggedInBefore) {
+            res.json({
+                userId: user._id,
+                message: 'Please provide the 2FA token.',
+                hasLoggedInBefore: true
+            });
+        }
+
+    } catch (err) {
+        next(err);
+    }
+};
 exports.signin = async (req, res, next) => {
     const {identifier, password} = req.body;
-
     try {
         if (!identifier) {
             next(new CustomError(400, 'An identifier (email, phone number, or username) is required.'));
@@ -226,7 +332,6 @@ exports.signin = async (req, res, next) => {
         next(err);
     }
 };
-
 
 exports.signout = (req, res) => {
     res.clearCookie('token');

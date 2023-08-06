@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
-const { hashPassword } = require('../utils/password-utils');
+const {hashPassword} = require('../utils/password-utils');
 const bcrypt = require('bcrypt');
 
 async function checkUnique(field, value) {
     if (value) {
-        const user = await this.constructor.findOne({ [field]: value });
+        const user = await this.constructor.findOne({[field]: value});
         if (user && String(user._id) !== String(this._id)) {
             return false;
         }
@@ -12,7 +12,7 @@ async function checkUnique(field, value) {
     return true;
 }
 
-const { ObjectId } = mongoose.Schema;
+const {ObjectId} = mongoose.Schema;
 const addressSchema = new mongoose.Schema(
     {
         streetAddress: {
@@ -48,7 +48,7 @@ const addressSchema = new mongoose.Schema(
             required: true,
         },
     },
-    { timestamps: true }
+    {timestamps: true}
 );
 
 const userSchema = new mongoose.Schema(
@@ -107,7 +107,6 @@ const userSchema = new mongoose.Schema(
             unique: true,
             sparse: true,
         },
-
         location: String,
         email: {
             type: String,
@@ -117,7 +116,15 @@ const userSchema = new mongoose.Schema(
             required: true,
             lowercase: true,
         },
-
+        hasLoggedInBefore: {
+            type: Boolean,
+            default: false
+        },
+        is2FAEnabled: {
+            type: Boolean,
+            default: false
+        },
+        secret: String,
         role: {
             type: ObjectId,
             ref: 'Role',
@@ -157,7 +164,7 @@ const userSchema = new mongoose.Schema(
 
         address: {},
 
-        wishlist: [{ type: ObjectId, ref: 'Product' }],
+        wishlist: [{type: ObjectId, ref: 'Product'}],
 
         hashed_password: {
             type: String,
@@ -190,7 +197,7 @@ const userSchema = new mongoose.Schema(
             default: '',
         },
     },
-    { timestamps: true }
+    {timestamps: true}
 );
 
 userSchema.pre('validate', async function (next) {
