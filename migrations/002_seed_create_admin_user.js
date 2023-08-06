@@ -58,9 +58,10 @@ const createAdminUser = async (db) => {
     };
 
     const existingAdmin = await db.collection('users').findOne({email});
+    console.log(existingAdmin)
     if (!existingAdmin) {
-        await db.collection('users').insertOne(adminData);
-        console.log('Admin user created successfully.');
+       const user= await db.collection('users').insertOne(adminData);
+        console.log(user);
     } else {
         console.log('An admin user with this email already exists.');
     }
@@ -72,8 +73,18 @@ module.exports = {
     },
 
     async down(db) {
-        const secretsPath = path.join(process.cwd(), 'admin_secrets.json');
-        const secrets = JSON.parse(fs.readFileSync(secretsPath, 'utf-8'));
-        await db.collection('users').deleteOne({email: secrets.email});
-    },
+        try {
+            const secretsPath = path.join(process.cwd(), 'admin_secrets.json');
+            const secrets = JSON.parse(fs.readFileSync(secretsPath, 'utf-8'));
+            const result = await db.collection('users').deleteOne({email: secrets.email});
+            if (result.deletedCount === 0) {
+                console.log('No user found with the provided email.');
+            } else {
+                console.log('User deleted successfully.');
+            }
+        } catch (error) {
+            console.error('Error during migration down:', error);
+        }
+    }
+
 };
