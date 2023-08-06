@@ -6,7 +6,7 @@ const {errorHandler} = require("../helpers/dbErrorHandler");
 const {OAuth2Client} = require('google-auth-library')
 const sgMail = require("@sendgrid/mail");
 const Role = require('../models/role')
-
+const speakeasy = require('speakeasy');
 const {CustomError} = require("../middlewares/errorHandler");
 
 //testing Last
