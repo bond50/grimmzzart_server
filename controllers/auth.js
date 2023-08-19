@@ -336,7 +336,7 @@ exports.getUserVerificationInfo = async (req, res, next) => {
             const secret = generateBase32Secret();
 
             // Construct the otpauth_url manually
-            const otpauth_url = `otpauth://totp/${process.env.APP_NAME}:${user.email}?secret=${secret}&issuer=${process.env.NODE_ENV === 'production' ? process.env.APP_NAME : process.env.APP_NAME_DEV}`;
+            const otpauth_url = `otpauth://totp/${process.env.NODE_ENV === 'production' ? process.env.APP_NAME : process.env.APP_NAME_DEV}:${user.email}?secret=${secret}&issuer=${process.env.NODE_ENV === 'production' ? process.env.APP_NAME : process.env.APP_NAME_DEV}`;
             await User.findByIdAndUpdate(user._id, {
                 secret: secret,
                 is2FAEnabled: true,
