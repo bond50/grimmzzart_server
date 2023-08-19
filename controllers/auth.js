@@ -10,6 +10,7 @@ const totp = require('totp-generator');
 const QRCode = require('qrcode');
 const {CustomError} = require("../middlewares/errorHandler");
 const crypto = require('crypto');
+const {hashPassword} = require("../utils/password-utils");
 
 
 //testing Last
@@ -228,37 +229,22 @@ exports.signinWithAuthenticator = async (req, res, next) => {
             return res.status(403).json({message: 'Access denied'});
         }
 
+
         const isPasswordMatch = await user.authenticate(password);
         if (!isPasswordMatch) {
             return res.status(400).json({message: 'Invalid login credentials.'});
         }
 
-        if (!user.hasLoggedInBefore) {
-            const secret = generateBase32Secret();
-
-            // Construct the otpauth_url manually
-            const otpauth_url = `otpauth://totp/${process.env.APP_NAME}:${identifier}?secret=${secret}&issuer=${process.env.APP_NAME}`;
-
-            await User.findByIdAndUpdate(user._id, {
-                secret: secret,
-                is2FAEnabled: true,
+        if (user.forcePasswordChange) {
+            return res.status(200).json({
+                message: 'Please change your password.',
+                forcePasswordChange: true,
+                userId: user._id
             });
-
-            QRCode.toDataURL(otpauth_url, (err, data_url) => {
-                if (err) {
-                    return res.status(500).json({error: 'Failed to generate QR code.'});
-                }
-                res.json({
-                    userId: user._id,
-                    qrCode: data_url,
-                    message: 'Scan the QR code using your authenticator app. Then, provide the token for verification.'
-                });
-            });
-        } else if (user.is2FAEnabled && user.hasLoggedInBefore) {
+        } else if (user.hasLoggedInBefore) {
             res.json({
                 userId: user._id,
-                message: 'Please provide the 2FA token.',
-                hasLoggedInBefore: true
+                needVerification: true
             });
         }
 
@@ -333,6 +319,49 @@ exports.signin = async (req, res, next) => {
     }
 };
 
+exports.getUserVerificationInfo = async (req, res, next) => {
+    const userId = req.params.userId;
+    try {
+        // Fetch user from the database using the provided userId
+        const user = await User.findById(userId);
+
+
+        // If user doesn't exist, send a 404 response
+        if (!user) {
+            next(new CustomError(404, 'User not found.'));
+        }
+
+        if (!user.hasLoggedInBefore) {
+            const secret = generateBase32Secret();
+
+            // Construct the otpauth_url manually
+            const otpauth_url = `otpauth://totp/${process.env.APP_NAME}:${user.email}?secret=${secret}&issuer=${process.env.APP_NAME}`;
+            await User.findByIdAndUpdate(user._id, {
+                secret: secret,
+                is2FAEnabled: true,
+            });
+            QRCode.toDataURL(otpauth_url, (err, data_url) => {
+                if (err) {
+                    next(new CustomError(500, 'Failed to generate QR code.'));
+                }
+                res.json({
+                    userId: user._id,
+                    qrCode: data_url,
+                    message: 'Scan the QR Code below using your preferred authenticator app and then enter the provided one-time code below.'
+                });
+            });
+        } else {
+            const {hasLoggedInBefore, is2FAEnabled} = user
+            res.json({hasLoggedInBefore, is2FAEnabled});
+        }
+
+    } catch (error) {
+        next(error);
+    }
+
+}
+
+
 exports.signout = (req, res) => {
     res.clearCookie('token');
     res.json({
@@ -342,7 +371,6 @@ exports.signout = (req, res) => {
 
 
 exports.forgotPassword = (req, res) => {
-
     const {email} = req.body;
     User.findOne({email}, (err, user) => {
         if (err || !user) {
@@ -382,9 +410,35 @@ exports.forgotPassword = (req, res) => {
 };
 
 
+exports.updatePassword = async (req, res, next) => {
+
+    const userId = req.params.userId;
+    const newPassword = req.body.password;
+
+    if (!newPassword) {
+        return res.status(400).json({error: 'Password is required'});
+    }
+
+    try {
+        // Hash the new password
+        const hashedPassword = await hashPassword(newPassword);
+        // Update the user's password and set forcePasswordChange to false
+        const user = await User.findByIdAndUpdate(userId, {
+            hashed_password: hashedPassword,
+            forcePasswordChange: false
+        });
+
+        res.status(200).json({
+            message: 'Password updated successfully',
+            userId: user._id,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 exports.resetPassword = (req, res) => {
     const {resetPasswordLink, password} = req.body;
-
     if (resetPasswordLink) {
         jwt.verify(resetPasswordLink, process.env.JWT_RESET_PASSWORD, async (err, decoded) => {
             if (err) {

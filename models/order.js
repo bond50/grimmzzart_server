@@ -25,9 +25,27 @@ const OrderSchema = new mongoose.Schema(
         discountAmount: Number,
         orderStatus: {
             type: String,
-            enum: ["Pending", "In Progress", "Completed"],
+            enum: [
+                "Pending", // Order received but not yet processed.
+                "Confirmed", // Order has been confirmed by the seller.
+                "Processing", // Order is being prepared for shipment.
+                "Awaiting Payment Confirmation", // Waiting for M-Pesa payment confirmation.
+                "Paid", // Payment has been received (could be via M-Pesa, card, or other methods).
+                "Shipped", // Order has been shipped.
+                "In Transit", // Order is on its way to the customer.
+                "Out for Delivery", // The delivery person has the order and is on the way to the customer's location.
+                "Delivered", // Order has been delivered to the customer.
+                "Failed Delivery", // Delivery attempt was made but failed.
+                "Returned", // Customer returned the product.
+                "Refunded", // Money has been returned to the customer.
+                "Cancelled", // Order was cancelled by the customer or seller.
+                "Warranty Claim", // Customer has claimed warranty for the product.
+                "Service/Repair", // Product is under service or repair.
+                "Replacement Sent" // A replacement product has been sent to the customer.
+            ],
             default: "Pending"
         },
+
         orderedBy: {
             type: ObjectId,
             ref: 'User',

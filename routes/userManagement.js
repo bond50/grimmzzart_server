@@ -9,7 +9,6 @@ const {
     deleteUser,
     getAllUsers,
 
-
 } = require("../controllers/userManagement");
 const {runValidation} = require("../validators");
 const {userCreateValidator} = require("../validators/userManagement");

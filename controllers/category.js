@@ -10,15 +10,9 @@ const {errorHandler} = require('../helpers/dbErrorHandler');
 exports.create = async (req, res) => {
     try {
         const {name, images} = req.body;
-
         const slug = slugify(name).toLowerCase();
-
         // Create a new category in the database
         const newCategory = await new Category({name, images, slug}).save();
-
-        // Invalidate the cache by deleting the cached categories data
-        cache.del('categories');
-
         res.json(newCategory);
     } catch (err) {
         return res.status(400).json({
@@ -29,19 +23,12 @@ exports.create = async (req, res) => {
 
 exports.list = async (req, res) => {
     const cacheKey = 'categories';
-    // Check if categories data is in cache
     const cachedCategories = cache.get(cacheKey);
     if (cachedCategories) {
         return res.json(cachedCategories);
     }
-
     try {
-        // Fetch categories data from your data source
         const categories = await Category.find({}).sort({createdAt: -1});
-
-        // Store categories data in cache for future requests
-        cache.set(cacheKey, categories, 3600); // Cache for 1 hour
-
         res.json(categories);
     } catch (error) {
         console.error('Error fetching categories:', error);
@@ -50,14 +37,6 @@ exports.list = async (req, res) => {
 };
 
 exports.read = async (req, res) => {
-    const cacheKey = `category:${req.params.slug}`;
-
-    // Check if category data is in cache
-    const cachedCategory = cache.get(cacheKey);
-    if (cachedCategory) {
-        return res.json(cachedCategory);
-    }
-
     try {
         // Fetch the category from the database
         const category = await Category.findOne({slug: req.params.slug}).exec();
@@ -68,10 +47,6 @@ exports.read = async (req, res) => {
             .populate('category')
             .populate('postedBy', '_id name')
             .exec();
-
-        // Create cache entry for the category
-        cache.set(cacheKey, {category, products}, 3600); // Cache for 1 hour
-
         res.json({category, products});
     } catch (error) {
         console.error('Error fetching category:', error);
@@ -91,13 +66,6 @@ exports.update = async (req, res) => {
             },
             {new: true}
         );
-
-        // Invalidate the cache by deleting the cached category data
-        cache.del(`category:${req.params.slug}`);
-
-        // Invalidate the cache by deleting the cached categories data
-        cache.del('categories');
-
         res.json(updated);
     } catch (e) {
         res.status(400).send('Category Update failed');
@@ -117,12 +85,6 @@ exports.remove = async (req, res) => {
 
         // Delete the category from the database
         const deleted = await Category.findOneAndDelete({slug});
-
-        // Invalidate the cache by deleting the cached category data
-        cache.del(`category:${req.params.slug}`);
-
-        // Invalidate the cache by deleting the cached categories data
-        cache.del('categories');
 
         res.json(deleted);
     } catch (e) {

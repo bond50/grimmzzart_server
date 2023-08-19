@@ -30,7 +30,7 @@ exports.createUser = async (req, res, next) => {
     let terms = true;
 
     try {
-        const {password, role, idNo, drivingLicense, ...userData} = req.body;
+        const {password, role, ...userData} = req.body;
         if (!password) {
             return next(new CustomError(400, 'Password is required'));
         }
@@ -40,36 +40,20 @@ exports.createUser = async (req, res, next) => {
             return next(new CustomError(400, 'Invalid role provided'));
         }
 
-        // Check if the role code is 4000
-        if (foundRole.code === 4000) {
-            // Validate idNo and drivingLicense separately
-            if (!idNo) {
-                return next(new CustomError(400, 'ID Number must be provided for carrier role'));
-            }
-
-            if (!drivingLicense) {
-                return next(new CustomError(400, 'Driving License Number must be provided for carrier role'));
-            }
-        }
-
-        console.log('Password', userData)
-
         const newUser = new User({
             ...userData,
             role,
-            idNo: foundRole.code === 4000 ? idNo : '',
-            drivingLicense: foundRole.code === 4000 ? drivingLicense : '',
             terms: terms,
+            forcePasswordChange: true,
             username: username,
         });
-        newUser._password = password; // Set the _password field directly
+        newUser._password = password;
         await newUser.save();
         res.status(201).json({message: 'User added successfully'});
     } catch (error) {
         next(error);
     }
 };
-
 
 
 exports.updateUser = async (req, res, next) => {
@@ -94,23 +78,24 @@ exports.updateUser = async (req, res, next) => {
 };
 
 exports.deleteUser = async (req, res, next) => {
+
+    console.log('deleting', req.params.userId);
     try {
         // Find the user by ID and populate their role
         const user = await User.findById(req.params.userId).populate('role');
 
-
         // If the user is not found, throw an error
         if (!user) return next(new CustomError(404, 'User not found'));
-
 
         // If the user is trying to delete themselves and they have a role code of 1000, reject the action
         if (user._id.equals(req.user._id) && user.role.code === 1000) {
             return next(
-                new CustomError(403, 'Admins cannot delete themselves'))
+                new CustomError(403, 'Admins cannot delete themselves')
+            );
         }
 
         // Otherwise, delete the user
-        await user.remove();
+        await User.deleteOne({_id: user._id});
         res.json({message: 'User deleted successfully'});
     } catch (error) {
         next(new CustomError(400, error.message));

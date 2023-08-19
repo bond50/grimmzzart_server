@@ -9,7 +9,6 @@ const extractToken = (req) => {
 
 const verifyAndDecodeToken = (token) => {
 
-
     return new Promise((resolve, reject) => {
         jwt.verify(token, process.env.JWT_SECRET, (err, decodedToken) => {
 
@@ -27,31 +26,38 @@ const verifyAndDecodeToken = (token) => {
 
 exports.adminCheck = async (req, res, next) => {
     const user = req.user;
-        console.log(user)
+    console.log(user)
     if (user.role.code !== 1000) {
         return next(new CustomError(403, `Access Denied.`));
     }
     next();
 };
 
-exports.authCheck = (req, res, next) => {
+
+exports.authCheck = async (req, res, next) => {
     const authUserId = req.auth._id;
 
-
-    User.findById({_id: authUserId})
-        .populate('role') // Populate the 'role' field
-        .exec((err, user) => {
-            if (err || !user) {
-                return next(new CustomError(400, 'User not found'));
-            }
-            req.user = user;
-
-            next();
-        });
+    try {
+        const user = await User.findById({_id: authUserId}).populate('role');
+        if (!user) {
+            return next(new CustomError(400, 'User not found'));
+        }
+        req.user = user;
+        next();
+    } catch (err) {
+        // If the error is not an instance of CustomError, wrap it with CustomError
+        if (!(err instanceof CustomError)) {
+            err = new CustomError(500, err.message);
+        }
+        next(err);
+    }
 };
+
 
 exports.requireSignin = async (req, res, next) => {
     const token = extractToken(req);
+
+
 
 
     if (!token) {

@@ -7,7 +7,7 @@ const User = require("../models/user");
 // List all roles
 exports.listRoles = async (req, res, next) => {
     try {
-        const roles = await Role.find({ code: { $ne: 1000 } });
+        const roles = await Role.find();
         res.status(200).json(roles);
     } catch (error) {
         next(new CustomError(500, error.message));

@@ -97,16 +97,6 @@ const userSchema = new mongoose.Schema(
             required: true,
             max: 32,
         },
-        idNo: {
-            type: String,
-            unique: true,
-            sparse: true,
-        },
-        drivingLicense: {
-            type: String,
-            unique: true,
-            sparse: true,
-        },
         location: String,
         email: {
             type: String,
@@ -182,6 +172,10 @@ const userSchema = new mongoose.Schema(
         suspensionEnd: {
             type: Date,
             default: null,
+        },
+        forcePasswordChange: {
+            type: Boolean,
+            default: false
         },
 
         suspensionPeriod: {
