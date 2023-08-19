@@ -216,6 +216,7 @@ exports.verify2FA = async (req, res, next) => {
 
 exports.signinWithAuthenticator = async (req, res, next) => {
     const {identifier, password} = req.body;
+
     try {
         const user = await User.findOne({
             $or: [{email: identifier}, {phoneNumber: identifier}, {username: identifier}],
@@ -235,13 +236,14 @@ exports.signinWithAuthenticator = async (req, res, next) => {
             return res.status(400).json({message: 'Invalid login credentials.'});
         }
 
+        console.log(user)
         if (user.forcePasswordChange) {
             return res.status(200).json({
                 message: 'Please change your password.',
                 forcePasswordChange: true,
                 userId: user._id
             });
-        } else if (user.hasLoggedInBefore) {
+        } else {
             res.json({
                 userId: user._id,
                 needVerification: true
@@ -321,6 +323,7 @@ exports.signin = async (req, res, next) => {
 
 exports.getUserVerificationInfo = async (req, res, next) => {
     const userId = req.params.userId;
+    console.log(userId)
     try {
         // Fetch user from the database using the provided userId
         const user = await User.findById(userId);
