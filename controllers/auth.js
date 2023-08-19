@@ -236,7 +236,6 @@ exports.signinWithAuthenticator = async (req, res, next) => {
             return res.status(400).json({message: 'Invalid login credentials.'});
         }
 
-        console.log(user)
         if (user.forcePasswordChange) {
             return res.status(200).json({
                 message: 'Please change your password.',
@@ -323,7 +322,6 @@ exports.signin = async (req, res, next) => {
 
 exports.getUserVerificationInfo = async (req, res, next) => {
     const userId = req.params.userId;
-    console.log(userId)
     try {
         // Fetch user from the database using the provided userId
         const user = await User.findById(userId);
@@ -338,7 +336,7 @@ exports.getUserVerificationInfo = async (req, res, next) => {
             const secret = generateBase32Secret();
 
             // Construct the otpauth_url manually
-            const otpauth_url = `otpauth://totp/${process.env.APP_NAME}:${user.email}?secret=${secret}&issuer=${process.env.APP_NAME}`;
+            const otpauth_url = `otpauth://totp/${process.env.APP_NAME}:${user.email}?secret=${secret}&issuer=${process.env.NODE_ENV === 'production' ? process.env.APP_NAME : process.env.APP_NAME_DEV}`;
             await User.findByIdAndUpdate(user._id, {
                 secret: secret,
                 is2FAEnabled: true,
