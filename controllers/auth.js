@@ -295,11 +295,13 @@ exports.signin = async (req, res, next) => {
                     cart,
                     firstName,
                     middleName,
+                    phoneNumber,
+                    email,
                     surname,
                     role,
                 } = user.toObject();
 
-                console.log(role)
+                console.log(user)
                 res.json({
                     user: {
                         _id,
@@ -307,6 +309,8 @@ exports.signin = async (req, res, next) => {
                         address,
                         cart,
                         username,
+                        phoneNumber,
+                        email,
                         firstName,
                         middleName,
                         surname,

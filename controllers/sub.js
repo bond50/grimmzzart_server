@@ -17,9 +17,7 @@ exports.read = async (req, res) => {
     try {
         const slug = req.params.slug.toLowerCase();
         const sub = await Sub.findOne({slug}).exec();
-
         const parent = await Category.findById(sub.parent);
-
         const products = await Product.find({subs: sub})
             .populate('category')
             .exec();
@@ -73,6 +71,33 @@ exports.list = async (req, res) => {
     }
 };
 
+exports.listOnlySubsWithProducts = async (req, res) => {
+    try {
+        const subcategories = await Sub.aggregate([
+            {
+                $lookup: {
+                    from: 'products', // Collection name
+                    localField: '_id',
+                    foreignField: 'subs',
+                    as: 'products',
+                },
+            },
+            {
+                $match: {
+                    'products.0': {$exists: true}, // Only consider subs with products
+                },
+            },
+            {
+                $sort: {createdAt: -1},
+            },
+        ]);
+
+        res.json(subcategories);
+    } catch (error) {
+        console.error('Error fetching subcategories:', error);
+        res.status(500).json({error: 'Internal server error'});
+    }
+};
 
 
 exports.update = async (req, res) => {

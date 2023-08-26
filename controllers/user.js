@@ -38,16 +38,11 @@ const paypalClient = new paypal.core.PayPalHttpClient(
 
 exports.userCart = async (req, res) => {
     const {cart} = req.body
-
     let products = []
     const user = await User.findById(req.auth._id).exec()
-
-
     const cartExistsByThisUser = await Cart.findOne({orderedBy: user._id}).exec()
-
-
     if (cartExistsByThisUser) {
-        await cartExistsByThisUser.remove()
+        await Cart.findOneAndRemove({orderedBy: user._id}).exec()
     }
 
     for (let i = 0; i < cart.length; i++) {
@@ -59,24 +54,11 @@ exports.userCart = async (req, res) => {
         products.push(productsObject)
         productsObject.price = p.price
     }
-
-
-    // using for i loop
-    // let cartTotal = 0
-    // for (let i = 0; i < products.length; i++) {
-    //     cartTotal = cartTotal + (products[i].price * products[i].count)
-    // }
-    // console.log(JSON.stringify(cartTotal, null, 4))
-
     //using reduce method
     const cartTotal = products.reduce((sum, i) => sum + (i.price * i.count), 0)
     const orderedBy = user._id
-
     const savedCart = await new Cart({products, cartTotal, cartTotalKES: cartTotal, orderedBy}).save()
-
-
     res.json({ok: true})
-
     console.log(JSON.stringify(savedCart, null, 4))
 
 }
@@ -102,6 +84,12 @@ exports.emptyCart = async (req, res) => {
 }
 exports.saveAddress = async (req, res) => {
     const {place, address} = req.body;
+
+
+    console.log(address)
+
+    console.log(place)
+
     const {streetAddress, city, state, zipCode, country, name, lat, lng, googlePlaceId} = address;
     try {
         const newAddress = {
@@ -117,13 +105,16 @@ exports.saveAddress = async (req, res) => {
             googlePlaceId
         };
 
+
         const userId = req.auth._id;
+
         const user = await User.findOne({_id: userId});
         if (!user) {
             return res.status(400).json({msg: 'User not found'});
         }
 
         let userAddresses = user.address;
+
         if (!userAddresses) {
             userAddresses = [];
         }
@@ -148,7 +139,10 @@ exports.saveAddress = async (req, res) => {
         await user.save();
 
         const updatedUser = await User.findOne({_id: userId}).sort({updatedAt: -1}).exec();
+
+        console.log(updatedUser.address)
         res.status(200).json({ok: true, address: updatedUser.address});
+
     } catch (error) {
         console.error(error.message);
         res.status(500).send('Server Error');
@@ -195,7 +189,7 @@ exports.orders = async (req, res) => {
                     amount: order.totalAmountPaid,
                     shippingStatus: order.shippingStatus,
                     currencyCode: order.currencyCode,
-                    shippingAddress:order.shippingAddress,
+                    shippingAddress: order.shippingAddress,
                     paymentMethod: order.paymentMethod,
                     paymentStatus: paymentStatus,
                     orderDate: order.orderDate,

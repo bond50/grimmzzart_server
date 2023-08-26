@@ -1,7 +1,8 @@
 const Brand = require('../models/brand');
 const slugify = require('slugify');
-const { errorHandler } = require('../helpers/dbErrorHandler');
+const {errorHandler} = require('../helpers/dbErrorHandler');
 const NodeCache = require('node-cache');
+const Product = require("../models/product");
 const cache = new NodeCache();
 
 exports.create = async (req, res) => {
@@ -31,9 +32,22 @@ exports.list = async (req, res) => {
 };
 
 exports.read = async (req, res) => {
+    const slug = req.params.slug.toLowerCase();
+
     try {
-        const brand = await Brand.findOne({slug: req.params.slug}).exec();
-        res.json(brand);
+
+        const brand = await Brand.findOne({slug}).exec();
+        if (!brand) {
+            return res.status(404).json({
+                error: 'Brand not found',
+            });
+        }
+        const products = await Product.find({brand: brand._id})
+            .populate('brand', 'name') // Populate the 'brand' field with just the 'name' property
+            .exec();
+
+        res.json({brand, products});
+
     } catch (err) {
         return res.status(400).json({
             error: errorHandler(err),

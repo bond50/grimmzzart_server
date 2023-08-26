@@ -22,14 +22,10 @@ exports.create = async (req, res) => {
 };
 
 exports.list = async (req, res) => {
-    const cacheKey = 'categories';
-    const cachedCategories = cache.get(cacheKey);
-    if (cachedCategories) {
-        return res.json(cachedCategories);
-    }
+
+
     try {
-        const categories = await Category.find({}).sort({createdAt: -1});
-        res.json(categories);
+        res.json(await Category.find({}).sort({createdAt: -1}))
     } catch (error) {
         console.error('Error fetching categories:', error);
         res.status(500).json({error: 'Internal server error'});

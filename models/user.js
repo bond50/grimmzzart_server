@@ -15,19 +15,30 @@ async function checkUnique(field, value) {
 const {ObjectId} = mongoose.Schema;
 const addressSchema = new mongoose.Schema(
     {
-        streetAddress: {
-            type: String,
-        },
+
         place: {},
         city: {
             type: String,
         },
+
         state: {
             type: String,
         },
+        region: {
+            type: String,
+        },
+        postalAddress: {
+            type: String,
+        },
+
+        formattedAddress: {
+            type: String,
+        },
+
         zipCode: {
             type: String,
         },
+
         country: {
             type: String,
         },
@@ -43,6 +54,26 @@ const addressSchema = new mongoose.Schema(
         name: {
             type: String,
         },
+        firstName: {
+            type: String,
+        },
+        surname: {
+            type: String,
+        },
+
+        phoneNumber: {
+            type: String,
+            trim: true,
+            unique: true,
+            validate: {
+                validator: function (v) {
+                    return /^(?:\+254|0)[17]\d{8}$/.test(v);
+                },
+                message: '{VALUE} is not a valid  phone number!',
+            },
+            required: [true, 'User phone number required']
+        },
+
         googlePlaceId: {
             type: String,
             required: true,
@@ -78,7 +109,7 @@ const userSchema = new mongoose.Schema(
                 },
                 message: '{VALUE} is not a valid  phone number!',
             },
-            // required: [true, 'User phone number required']
+            required: [true, 'User phone number required']
         },
         firstName: {
             type: String,
@@ -152,7 +183,7 @@ const userSchema = new mongoose.Schema(
             default: [],
         },
 
-        address: {},
+        address: [addressSchema],
 
         wishlist: [{type: ObjectId, ref: 'Product'}],
 
