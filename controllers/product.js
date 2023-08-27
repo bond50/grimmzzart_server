@@ -5,16 +5,25 @@ const {errorHandler} = require('../helpers/dbErrorHandler');
 const NodeCache = require('node-cache');
 const cache = new NodeCache();
 const Brand = require('../models/brand');
+
 exports.list = async (req, res) => {
     try {
-        const {sort, order, page} = req.query;
+        const { sort, order, page, limit, searchTerm } = req.query;
+
+        console.log(searchTerm)
+
         const currentPage = page || 1;
-        const perPage = 6;
+        const perPage = limit ? parseInt(limit) : 6; // Use limit from query if available, else default to 6
         let query = {};
 
         if (sort === 'isFeatured') {
-            query = {isFeatured: true};
+            query.isFeatured = true;
         }
+
+        if (searchTerm) {
+            query.title = { $regex: searchTerm, $options: 'i' }; // Search by name, case-insensitive
+        }
+
 
 
         const products = await Product.find(query)
@@ -22,14 +31,16 @@ exports.list = async (req, res) => {
             .populate('category')
             .populate('subs')
             .sort(sort === 'isFeatured' ? 'createdAt' : [[sort, order]])
-            .limit(parseInt(perPage))
+            .limit(perPage)
             .exec();
 
         res.json(products);
     } catch (e) {
-        res.status(400).send({error: e.message});
+        res.status(400).send({ error: e.message });
     }
 };
+
+
 
 exports.create = async (req, res) => {
     try {

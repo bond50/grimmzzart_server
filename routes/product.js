@@ -16,8 +16,7 @@ router.get('/products/:count', listAll)
 router.delete('/product/:slug', requireSignin, authCheck, adminCheck, authorize('delete', 'Product'), remove)
 router.get('/product/:slug', read)
 router.put('/product/:slug', requireSignin, authCheck, authorize('update', 'Product'), update);
-router.post('/products', list)
-
+// router.post('/products', list)
 router.get('/featured/products', listFeaturedProducts)
 router.put('/product/star/:productId', requireSignin, authCheck, productStar);
 router.get('/product/related/:_id', listRelated)
