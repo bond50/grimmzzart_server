@@ -29,9 +29,8 @@ const BannerSchema = new mongoose.Schema({
     endDate: {
         type: Date,
     },
-    src: {
-        type: String,
-        required: true,
+    images: {
+        type: Array,
     },
     title: {
         type: String,
@@ -55,20 +54,11 @@ const BannerSchema = new mongoose.Schema({
     },
 }, {timestamps: true});
 
-// Middleware to set isActive, isSmallBanner, and isMainBanner
+BannerSchema.index({ contentType: 1, contentId: 1, title: 1, subtitle: 1 }, { unique: true });
 BannerSchema.pre('save', function (next) {
     // 1. Set isActive to false if endDate has reached
     if (this.endDate && new Date(this.endDate) <= new Date()) {
         this.isActive = false;
-    }
-
-    // 2. Set isSmallBanner and isMainBanner based on contentType
-    if (this.contentType === 'Product') {
-        this.isSmallBanner = true;
-        this.isMainBanner = false;
-    } else {
-        this.isSmallBanner = false;
-        this.isMainBanner = true;
     }
 
     next();
@@ -82,16 +72,6 @@ BannerSchema.pre('updateOne', function (next) {
     if (update.endDate && new Date(update.endDate) <= new Date()) {
         update.isActive = false;
     }
-
-    // 2. Set isSmallBanner and isMainBanner based on contentType
-    if (update.contentType === 'Product') {
-        update.isSmallBanner = true;
-        update.isMainBanner = false;
-    } else {
-        update.isSmallBanner = false;
-        update.isMainBanner = true;
-    }
-
     next();
 });
 

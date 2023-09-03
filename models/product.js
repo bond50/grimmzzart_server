@@ -187,11 +187,15 @@ const productSchema = new mongoose.Schema(
             type: String,
             trim: true,
             required: true,
+            index: true,
             text: true,
             maxlength: 32,
         },
         displayTitle: {
             type: String,
+            trim: true,
+            index: true,
+            text: true,
             required: true,
         },
         sku: {
@@ -277,7 +281,7 @@ const productSchema = new mongoose.Schema(
         warranty: {
             duration: {
                 type: Number,
-                default:0
+                default: 0
             },
             details: {
                 type: String,

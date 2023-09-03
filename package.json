@@ -46,7 +46,7 @@
     "puppeteer-cluster": "^0.23.0",
     "puppeteer-extra": "^3.3.4",
     "qrcode": "^1.5.3",
-    "redis": "^4.6.7",
+    "redis": "^4.6.8",
     "short-unique-id": "^4.4.4",
     "shortid": "^2.2.16",
     "slugify": "^1.6.5",

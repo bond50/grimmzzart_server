@@ -21,7 +21,7 @@ exports.list = async (req, res) => {
         }
 
         if (searchTerm) {
-            query.title = { $regex: searchTerm, $options: 'i' }; // Search by name, case-insensitive
+            query.displayTitle = { $regex: searchTerm, $options: 'i' }; // Search by name, case-insensitive
         }
 
 

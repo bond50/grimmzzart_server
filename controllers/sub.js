@@ -14,18 +14,19 @@ exports.read = async (req, res) => {
     //     return res.json(cachedSubcategory);
     // }
 
+
     try {
         const slug = req.params.slug.toLowerCase();
+
         const sub = await Sub.findOne({slug}).exec();
+
         const parent = await Category.findById(sub.parent);
         const products = await Product.find({subs: sub})
             .populate('category')
             .exec();
 
-        // Create cache entry for the subcategory
-        // cache.set(cacheKey, {sub, parent, products}, 3600); // Cache for 1 hour
-
         res.json({sub, parent, products});
+
     } catch (error) {
         console.error('Error fetching subcategory:', error);
         res.status(500).json({error: 'Internal server error'});
